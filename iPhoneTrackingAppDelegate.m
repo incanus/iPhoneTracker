@@ -270,10 +270,14 @@
     template = [template stringByReplacingOccurrencesOfString:@"##NAME##"       withString:deviceName];
     template = [template stringByReplacingOccurrencesOfString:@"##PLACEMARKS##" withString:placemarks];
     
-    [template writeToFile:[NSString stringWithFormat:@"%@/Desktop/%@.kml", NSHomeDirectory(), deviceName]
+    NSString *fileURL = [NSString stringWithFormat:@"%@/Desktop/%@.kml", NSHomeDirectory(), deviceName];
+    
+    [template writeToFile:fileURL
                atomically:NO
                  encoding:NSUTF8StringEncoding
                     error:NULL];
+    
+    [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:[NSArray arrayWithObject:[NSURL URLWithString:fileURL]]];
 }
 
 - (IBAction)openAboutPanel:(id)sender {
