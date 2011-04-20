@@ -215,6 +215,8 @@
   
   NSString* csvText = [csvArray componentsJoinedByString:@"\n"];
   
+  [self createKMLOutputWithCSVText:csvText deviceName:deviceName];
+    
   id scriptResult = [scriptObject callWebScriptMethod: @"storeLocationData" withArguments:[NSArray arrayWithObjects:csvText,deviceName,nil]];
 	if(![scriptResult isMemberOfClass:[WebUndefined class]]) {
 		NSLog(@"scriptResult='%@'", scriptResult);
@@ -232,6 +234,46 @@
     NSNumber* newValue = [NSNumber numberWithInteger:([existingValue integerValue]+1)];
 
     [buckets setObject: newValue forKey: key];
+}
+
+- (void)createKMLOutputWithCSVText:(NSString *)csvText deviceName:(NSString *)deviceName
+{
+    NSMutableString *placemarks = [NSMutableString string];
+    
+    NSMutableArray *lines = [NSMutableArray arrayWithArray:[csvText componentsSeparatedByString:@"\n"]];
+    
+    [lines removeObjectAtIndex:0];
+    
+    for (NSString *line in lines)
+    {
+        if ([line length])
+        {
+            NSArray *parts = [line componentsSeparatedByString:@","];
+            
+            if ([parts count])
+            {
+                [placemarks appendString:@"<Placemark>\n"];
+                [placemarks appendString:[NSString stringWithFormat:@"<name>%@</name>\n", [parts objectAtIndex:3]]];
+                [placemarks appendString:[NSString stringWithFormat:@"<description>%@, %@</description>\n", [parts objectAtIndex:1], [parts objectAtIndex:0]]];
+                [placemarks appendString:@"<Point>\n"];
+                [placemarks appendString:[NSString stringWithFormat:@"<coordinates>%@,%@,0</coordinates>\n", [parts objectAtIndex:1], [parts objectAtIndex:0]]];
+                [placemarks appendString:@"</Point>\n"];
+                [placemarks appendString:@"</Placemark>\n"];
+            }
+        }
+    }
+        
+    NSString *template = [NSString stringWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"template" ofType:@"kml"] 
+                                                   encoding:NSUTF8StringEncoding 
+                                                      error:NULL];
+    
+    template = [template stringByReplacingOccurrencesOfString:@"##NAME##"       withString:deviceName];
+    template = [template stringByReplacingOccurrencesOfString:@"##PLACEMARKS##" withString:placemarks];
+    
+    [template writeToFile:[NSString stringWithFormat:@"%@/Desktop/%@.kml", NSHomeDirectory(), deviceName]
+               atomically:NO
+                 encoding:NSUTF8StringEncoding
+                    error:NULL];
 }
 
 - (IBAction)openAboutPanel:(id)sender {
